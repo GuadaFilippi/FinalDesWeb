@@ -5,58 +5,281 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Gestor de Tareas</title>
   <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
 </head>
 <body>
   <div class="container">
     <h1>📝 Gestor de Tareas</h1>
 
-    <form id="form-tarea">
-      <input type="text" id="descripcion" placeholder="Escribí una nueva tarea..." required />
-      <button type="submit">Agregar</button>
+    <form id="task-form" class="task-form">
+      <div class="form-group">
+        <label for="title">Título</label>
+        <input type="text" id="title" placeholder="Título de la tarea" required />
+      </div>
+
+      <div class="form-group">
+        <label for="description">Descripción</label>
+        <textarea id="description" placeholder="Descripción de la tarea" rows="3"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="priority">Prioridad</label>
+        <select id="priority">
+          <option value="baja">Baja</option>
+          <option value="media" selected>Media</option>
+          <option value="alta">Alta</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="category">Categoría</label>
+        <select id="category">
+          <option value="general" selected>General</option>
+          <option value="trabajo">Trabajo</option>
+          <option value="personal">Personal</option>
+          <option value="estudio">Estudio</option>
+        </select>
+      </div>
+
+      <button type="submit">Agregar Tarea</button>
     </form>
 
-    <ul id="lista-tareas"></ul>
+    <div id="error-message" class="error" style="display: none;"></div>
+    <div id="loading" class="loading" style="display: none;">Cargando...</div>
+    
+    <ul id="task-list" class="task-list"></ul>
+  </div>
+
+  <!-- Modal para editar tarea -->
+  <div id="edit-modal" style="display: none;" class="modal">
+    <div class="modal-content">
+      <h2>Editar Tarea</h2>
+      <form id="edit-form">
+        <input type="hidden" id="edit-id" />
+        <div class="form-group">
+          <label for="edit-title">Título</label>
+          <input type="text" id="edit-title" required />
+        </div>
+        <div class="form-group">
+          <label for="edit-description">Descripción</label>
+          <textarea id="edit-description" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="edit-priority">Prioridad</label>
+          <select id="edit-priority">
+            <option value="baja">Baja</option>
+            <option value="media">Media</option>
+            <option value="alta">Alta</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="edit-category">Categoría</label>
+          <select id="edit-category">
+            <option value="general">General</option>
+            <option value="trabajo">Trabajo</option>
+            <option value="personal">Personal</option>
+            <option value="estudio">Estudio</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="edit-completed" />
+            Completada
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="submit">Guardar</button>
+          <button type="button" onclick="closeModal()">Cancelar</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <script>
-    const form = document.getElementById('form-tarea');
-    const input = document.getElementById('descripcion');
-    const lista = document.getElementById('lista-tareas');
-  
-    const crearElemento = (tarea) => {
+    const taskForm = document.getElementById('task-form');
+    const taskList = document.getElementById('task-list');
+    const errorMessage = document.getElementById('error-message');
+    const loading = document.getElementById('loading');
+    const editModal = document.getElementById('edit-modal');
+    const editForm = document.getElementById('edit-form');
+
+    // Función para mostrar errores
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.style.display = 'block';
+      console.error('Error mostrado al usuario:', message);
+      setTimeout(() => {
+        errorMessage.style.display = 'none';
+      }, 5000); // Aumentamos el tiempo de visualización a 5 segundos
+    }
+
+    // Función para crear el elemento de tarea
+    function createTaskElement(task) {
       const li = document.createElement('li');
-      li.textContent = tarea.descripcion;
-  
-      const btn = document.createElement('button');
-      btn.textContent = '❌';
-      btn.classList.add('eliminar');
-      btn.onclick = async () => {
-        await fetch(`/tareas/${tarea.id}`, { method: 'DELETE' });
-        li.remove();
+      li.className = `task-item ${task.completada ? 'completed' : ''}`;
+      li.setAttribute('data-id', task.id);
+      
+      const content = document.createElement('div');
+      content.className = 'task-content';
+      
+      const title = document.createElement('h3');
+      title.className = 'task-title';
+      title.textContent = task.titulo;
+      
+      const description = document.createElement('p');
+      description.className = 'task-description';
+      description.textContent = task.descripcion;
+      
+      const meta = document.createElement('div');
+      meta.className = 'task-meta';
+      
+      const priority = document.createElement('span');
+      priority.className = `task-priority priority-${task.prioridad}`;
+      priority.textContent = task.prioridad.charAt(0).toUpperCase() + task.prioridad.slice(1);
+      
+      const category = document.createElement('span');
+      category.className = 'task-category';
+      category.textContent = task.categoria.charAt(0).toUpperCase() + task.categoria.slice(1);
+      
+      const actions = document.createElement('div');
+      actions.className = 'task-actions';
+      
+      const editBtn = document.createElement('button');
+      editBtn.className = 'btn-edit';
+      editBtn.innerHTML = '<i class="fas fa-edit"></i>';
+      editBtn.onclick = () => openEditModal(task);
+      
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'btn-delete';
+      deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+      deleteBtn.onclick = async () => {
+        if (confirm('¿Estás seguro de que quieres eliminar esta tarea?')) {
+          try {
+            await fetch(`/tareas/${task.id}`, { method: 'DELETE' });
+            li.remove();
+          } catch (error) {
+            showError('Error al eliminar la tarea');
+          }
+        }
       };
-  
-      li.appendChild(btn);
+      
+      meta.appendChild(priority);
+      meta.appendChild(category);
+      content.appendChild(title);
+      content.appendChild(description);
+      content.appendChild(meta);
+      actions.appendChild(editBtn);
+      actions.appendChild(deleteBtn);
+      li.appendChild(content);
+      li.appendChild(actions);
+      
       return li;
-    };
-  
-    fetch('/tareas')
-      .then(res => res.json())
-      .then(data => {
-        data.forEach(t => lista.appendChild(crearElemento(t)));
-      });
-  
-    form.addEventListener('submit', async (e) => {
+    }
+
+    // Función para abrir el modal de edición
+    function openEditModal(task) {
+      document.getElementById('edit-id').value = task.id;
+      document.getElementById('edit-title').value = task.titulo;
+      document.getElementById('edit-description').value = task.descripcion;
+      document.getElementById('edit-priority').value = task.prioridad;
+      document.getElementById('edit-category').value = task.categoria;
+      document.getElementById('edit-completed').checked = task.completada;
+      editModal.style.display = 'block';
+    }
+
+    // Función para cerrar el modal
+    function closeModal() {
+      editModal.style.display = 'none';
+    }
+
+    // Cargar tareas
+    async function loadTasks() {
+      try {
+        loading.style.display = 'block';
+        const response = await fetch('/tareas');
+        if (!response.ok) {
+          throw new Error('Error al cargar las tareas');
+        }
+        const tasks = await response.json();
+        console.log('Tareas cargadas:', tasks);
+        taskList.innerHTML = '';
+        tasks.forEach(task => {
+          taskList.appendChild(createTaskElement(task));
+        });
+      } catch (error) {
+        console.error('Error al cargar tareas:', error);
+        showError('Error al cargar las tareas');
+      } finally {
+        loading.style.display = 'none';
+      }
+    }
+
+    // Crear nueva tarea
+    taskForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const res = await fetch('/tareas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ descripcion: input.value })
-      });
-      const nueva = await res.json();
-      lista.appendChild(crearElemento(nueva));
-      input.value = '';
+      const task = {
+        titulo: document.getElementById('title').value,
+        descripcion: document.getElementById('description').value,
+        prioridad: document.getElementById('priority').value,
+        categoria: document.getElementById('category').value
+      };
+
+      try {
+        const response = await fetch('/tareas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(task)
+        });
+        
+        if (!response.ok) throw new Error('Error al crear la tarea');
+        
+        const newTask = await response.json();
+        taskList.appendChild(createTaskElement(newTask));
+        taskForm.reset();
+      } catch (error) {
+        showError('Error al crear la tarea');
+      }
     });
+
+    // Editar tarea
+    editForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = parseInt(document.getElementById('edit-id').value);
+      const task = {
+        titulo: document.getElementById('edit-title').value,
+        descripcion: document.getElementById('edit-description').value,
+        prioridad: document.getElementById('edit-priority').value,
+        categoria: document.getElementById('edit-category').value,
+        completada: document.getElementById('edit-completed').checked
+      };
+
+      try {
+        console.log('PUT /tareas/:id', id, task);
+        const response = await fetch(`/tareas/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(task)
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Error al actualizar la tarea');
+        }
+        
+        const updatedTask = await response.json();
+        console.log('Tarea actualizada:', updatedTask);
+        
+        // Recargar la lista completa para asegurar que todo esté sincronizado
+        await loadTasks();
+        closeModal();
+      } catch (error) {
+        console.error('Error en la actualización:', error);
+        showError(error.message || 'Error al actualizar la tarea');
+      }
+    });
+
+    // Cargar tareas al iniciar
+    loadTasks();
   </script>
-  
 </body>
 </html>
