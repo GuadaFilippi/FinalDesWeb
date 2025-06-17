@@ -1,0 +1,16 @@
+[
+  {
+    "id": 1750201292049,
+    "nombre": "Guadalupe",
+    "apellido": "Filippi",
+    "email": "guadalupefilippi@gmail.com",
+    "password": "123456"
+  },
+  {
+    "id": 1750201813464,
+    "nombre": "Candelaria",
+    "apellido": "Sisini",
+    "email": "candelariasisini@gmail.com",
+    "password": "123456"
+  }
+]
