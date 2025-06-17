@@ -2,10 +2,61 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Gestor de Tareas</title>
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <h1>Gestor de Tareas</h1>
+  <div class="container">
+    <h1>📝 Gestor de Tareas</h1>
+
+    <form id="form-tarea">
+      <input type="text" id="descripcion" placeholder="Escribí una nueva tarea..." required />
+      <button type="submit">Agregar</button>
+    </form>
+
+    <ul id="lista-tareas"></ul>
+  </div>
+
+  <script>
+    const form = document.getElementById('form-tarea');
+    const input = document.getElementById('descripcion');
+    const lista = document.getElementById('lista-tareas');
+  
+    const crearElemento = (tarea) => {
+      const li = document.createElement('li');
+      li.textContent = tarea.descripcion;
+  
+      const btn = document.createElement('button');
+      btn.textContent = '❌';
+      btn.classList.add('eliminar');
+      btn.onclick = async () => {
+        await fetch(`/tareas/${tarea.id}`, { method: 'DELETE' });
+        li.remove();
+      };
+  
+      li.appendChild(btn);
+      return li;
+    };
+  
+    fetch('/tareas')
+      .then(res => res.json())
+      .then(data => {
+        data.forEach(t => lista.appendChild(crearElemento(t)));
+      });
+  
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const res = await fetch('/tareas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ descripcion: input.value })
+      });
+      const nueva = await res.json();
+      lista.appendChild(crearElemento(nueva));
+      input.value = '';
+    });
+  </script>
+  
 </body>
 </html>

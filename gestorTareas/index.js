@@ -17,10 +17,12 @@ app.post('/tareas', (req, res) => {
 });
 
 app.delete('/tareas/:id', (req, res) => {
-  tareas = tareas.filter(t => t.id != req.params.id);
-  fs.writeFileSync('db.json', JSON.stringify(tareas, null, 2));
-  res.sendStatus(204);
-});
+    const id = parseInt(req.params.id);
+    tareas = tareas.filter(t => t.id !== id);
+    fs.writeFileSync('db.json', JSON.stringify(tareas, null, 2));
+    res.sendStatus(204);
+  });
+  
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'index.html'));
 });
