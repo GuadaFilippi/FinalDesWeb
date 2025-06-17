@@ -1,3 +1,4 @@
+const path = require('path');
 const express = require('express');
 const fs = require('fs');
 const app = express();
@@ -20,5 +21,12 @@ app.delete('/tareas/:id', (req, res) => {
   fs.writeFileSync('db.json', JSON.stringify(tareas, null, 2));
   res.sendStatus(204);
 });
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'index.html'));
+});
 
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'views', 'index.html'));
+  });
+  
 app.listen(3000, () => console.log("Servidor corriendo en puerto 3000"));
