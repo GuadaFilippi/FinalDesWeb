@@ -254,32 +254,27 @@
       };
 
       try {
-        console.log('PUT /tareas/:id', id, task);
         const response = await fetch(`/tareas/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(task)
         });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Error al actualizar la tarea');
-        }
+
+        if (!response.ok) throw new Error('Error al actualizar la tarea');
         
         const updatedTask = await response.json();
-        console.log('Tarea actualizada:', updatedTask);
-        
-        // Recargar la lista completa para asegurar que todo esté sincronizado
-        await loadTasks();
+        const taskElement = taskList.querySelector(`[data-id="${id}"]`);
+        if (taskElement) {
+          taskList.replaceChild(createTaskElement(updatedTask), taskElement);
+        }
         closeModal();
       } catch (error) {
-        console.error('Error en la actualización:', error);
-        showError(error.message || 'Error al actualizar la tarea');
+        showError('Error al actualizar la tarea');
       }
     });
 
-    // Cargar tareas al iniciar
+    // Carga inicial
     loadTasks();
   </script>
 </body>
-</html>
+</html> 

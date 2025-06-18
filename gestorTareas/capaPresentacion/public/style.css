@@ -250,7 +250,7 @@ button:hover {
 }
 
 .modal-actions button {
-  min-width: 100px;
+  width: auto;
 }
 
 .modal-actions button[type="button"] {
@@ -261,25 +261,21 @@ button:hover {
   background-color: #5a6268;
 }
 
-/* Checkbox styles */
+
 input[type="checkbox"] {
   width: auto;
   margin-right: 0.5rem;
 }
 
-/* Responsive modal */
 @media (max-width: 600px) {
   .modal-content {
+    width: 95%;
     margin: 5% auto;
-    padding: 1.5rem;
   }
-  
   .modal-actions {
     flex-direction: column;
   }
-  
   .modal-actions button {
     width: 100%;
   }
-}
-  
+} 
